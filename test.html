@@ -1,0 +1,875 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ASCII Art Image Converter</title>
+  <!-- Add Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&family=Space+Mono&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      /* Dark theme only */
+      --background: #121212;
+      --text: #E0E0E0;
+      --accent: #FF0000; /* Brighter red */
+      --hover: #FF3333; /* Brighter hover red */
+      --panel: #1E1E1E;
+      --border: #333333;
+      --dark-panel: #252525;
+    }
+
+    /* Remove light theme variables */
+    :root.light-theme {
+      --background: #FFFFFF;
+      --text: #333333;
+      --accent: #FF0000; /* Brighter red */
+      --hover: #FF3333; /* Brighter hover red */
+      --panel: #F5F5F5;
+      --border: #E0E0E0;
+      --dark-panel: #EFEFEF;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Poppins', sans-serif;
+    }
+
+    body {
+      background-color: var(--background);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+      background-image: radial-gradient(circle at 10% 20%, rgba(139, 0, 0, 0.05) 0%, transparent 70%);
+    }
+
+    .container {
+      max-width: 1200px;
+      width: 100%;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 40px;
+      position: relative;
+      padding: 20px 0;
+    }
+
+    h1 {
+      font-size: 3rem;
+      font-weight: 600;
+      /* Removed text-shadow glow */
+      letter-spacing: 2px;
+      margin-bottom: 15px;
+      position: relative;
+      background: linear-gradient(90deg, #333333, #8B0000);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    h1::after {
+      content: '';
+      position: absolute;
+      bottom: -10px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 150px;
+      height: 3px;
+      background: linear-gradient(90deg, transparent, var(--accent), transparent);
+    }
+
+    .subtitle {
+      opacity: 0.8;
+      font-size: 1.2rem;
+      margin-bottom: 20px;
+      font-weight: 300;
+    }
+
+    /* Updated panels layout */
+    .panels {
+      display: flex;
+      flex-direction: column;
+      gap: 30px;
+      margin-bottom: 40px;
+    }
+
+    @media (min-width: 768px) {
+      .panels {
+        flex-direction: row;
+      }
+    }
+
+    .panel {
+      flex: 1;
+      background-color: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 25px;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .panel:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3);
+    }
+
+    .panel::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, transparent, var(--accent), transparent);
+    }
+
+    .panel-title {
+      font-size: 1.4rem;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 600;
+    }
+
+    .panel-title::before {
+      content: '>';
+      color: var(--accent);
+    }
+
+    /* Updated drop area */
+    .drop-area {
+      border: 2px dashed var(--border);
+      border-radius: 12px;
+      min-height: 220px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+      background-color: var(--dark-panel);
+    }
+
+    .drop-area.active {
+      border-color: var(--accent);
+      background-color: rgba(139, 0, 0, 0.05);
+    }
+
+    .drop-area:hover {
+      border-color: var(--hover);
+      transform: scale(1.01);
+    }
+
+    .drop-text {
+      text-align: center;
+      pointer-events: none;
+      padding: 20px;
+    }
+
+    .drop-text p {
+      margin: 5px 0;
+    }
+
+    .drop-text p:first-child {
+      font-size: 1.2rem;
+      font-weight: 600;
+    }
+
+    /* Updated button styles */
+    .upload-btn {
+      margin-top: 25px;
+      padding: 12px 25px;
+      background-color: transparent;
+      border: 2px solid var(--accent);
+      color: var(--text);
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+      font-weight: 500;
+      letter-spacing: 1px;
+    }
+
+    .upload-btn:hover {
+      background-color: rgba(139, 0, 0, 0.1);
+      box-shadow: 0 0 15px rgba(139, 0, 0, 0.3);
+      transform: translateY(-2px);
+    }
+
+    .upload-btn::before {
+      content: '';
+      position: absolute;
+      top: -100%;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(rgba(139, 0, 0, 0.2), transparent);
+      transition: all 0.5s ease;
+    }
+
+    .upload-btn:hover::before {
+      top: 0;
+    }
+
+    /* Updated controls */
+    .controls {
+      margin-top: 30px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      background-color: var(--dark-panel);
+      padding: 20px;
+      border-radius: 10px;
+    }
+
+    .control-group {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+
+    .control-label {
+      min-width: 120px;
+      font-weight: 500;
+    }
+
+    /* Updated toggle switch */
+    .toggle-wrapper {
+      position: relative;
+      width: 60px;
+      height: 30px;
+    }
+
+    .toggle {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .toggle-slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: var(--panel);
+      border: 1px solid var(--border);
+      transition: 0.4s;
+      border-radius: 30px;
+    }
+
+    .toggle-slider:before {
+      position: absolute;
+      content: "";
+      height: 22px;
+      width: 22px;
+      left: 4px;
+      bottom: 3px;
+      background-color: var(--accent);
+      transition: 0.4s;
+      border-radius: 50%;
+    }
+
+    .toggle:checked + .toggle-slider {
+      background-color: rgba(139, 0, 0, 0.1);
+    }
+
+    .toggle:checked + .toggle-slider:before {
+      transform: translateX(30px);
+    }
+
+    /* Updated size buttons */
+    .size-options {
+      display: flex;
+      gap: 10px;
+    }
+
+    .size-btn {
+      padding: 8px 15px;
+      background-color: transparent;
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      font-weight: 500;
+    }
+
+    .size-btn.active {
+      background-color: rgba(139, 0, 0, 0.1);
+      border-color: var(--accent);
+      box-shadow: 0 0 5px rgba(139, 0, 0, 0.3);
+    }
+
+    .size-btn:hover:not(.active) {
+      border-color: var(--hover);
+      transform: translateY(-2px);
+    }
+
+    /* Updated output container */
+    .output-container {
+      position: relative;
+      min-height: 300px;
+      background-color: var(--dark-panel); /* Use theme variable */
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: auto;
+      padding: 15px;
+      margin-top: 10px;
+      white-space: pre;
+      font-family: 'Space Mono', monospace;
+      font-size: 10px;
+      line-height: 1;
+      position: relative;
+      box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.2);
+    }
+    
+    .crt-effect {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(rgba(139, 0, 0, 0) 50%, rgba(139, 0, 0, 0.03) 50%);
+      background-size: 100% 4px;
+      z-index: 1;
+      pointer-events: none;
+      opacity: 0.15;
+    }
+
+    .crt-effect::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(18, 16, 16, 0.1);
+      opacity: 0;
+      z-index: 2;
+      pointer-events: none;
+      animation: flicker 0.3s infinite;
+    }
+
+    .ascii-output {
+      position: relative;
+      z-index: 0;
+    }
+
+    /* Updated action buttons */
+    .action-buttons {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      margin-top: 20px;
+    }
+
+    .save-btn {
+      padding: 10px 20px;
+      background-color: transparent;
+      border: 2px solid var(--accent);
+      color: var(--text);
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 500;
+    }
+
+    .save-btn:hover {
+      background-color: rgba(139, 0, 0, 0.1);
+      box-shadow: 0 0 10px rgba(139, 0, 0, 0.3);
+      transform: translateY(-2px);
+    }
+
+    .save-btn .icon {
+      display: inline-block;
+      font-size: 1.2rem;
+    }
+
+    .save-btn:hover .icon {
+      animation: glitch 1s infinite;
+    }
+
+    /* Updated loading spinner */
+    .loading {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: rgba(0, 0, 0, 0.8);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 100;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+      backdrop-filter: blur(5px);
+    }
+
+    .loading.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .spinner {
+      width: 50px;
+      height: 50px;
+      border: 4px solid rgba(139, 0, 0, 0.1);
+      border-left-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    /* Animations */
+    @keyframes glitch {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-2px); }
+      50% { transform: translateX(2px); }
+      75% { transform: translateX(-1px); }
+    }
+
+    @keyframes flicker {
+      0%, 100% { opacity: 0.1; }
+      50% { opacity: 0; }
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+      h1 {
+        font-size: 2.2rem;
+      }
+      
+      .control-group {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      
+      .size-options {
+        margin-top: 5px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <!-- Removed theme toggle icon -->
+      <h1>ASCII Art Converter</h1>
+      <p class="subtitle">Transform your images into beautiful ASCII art</p>
+    </header>
+    
+    <div class="panels">
+      <div class="panel">
+        <h2 class="panel-title">Input</h2>
+        <div id="dropArea" class="drop-area">
+          <!-- Remove this line -->
+          <!-- <canvas id="matrixCanvas" class="matrix-bg"></canvas> -->
+          <div class="drop-text">
+            <p>Drag & drop image here</p>
+            <p>(JPG, PNG, GIF)</p>
+          </div>
+          <input type="file" id="fileInput" accept="image/*" class="hidden" />
+          <button id="uploadBtn" class="upload-btn">Select File</button>
+        </div>
+        
+        <div class="controls">
+          <div class="control-group">
+            <span class="control-label">Color Output:</span>
+            <div class="toggle-wrapper">
+              <input type="checkbox" id="colorToggle" class="toggle">
+              <label for="colorToggle" class="toggle-slider"></label>
+            </div>
+          </div>
+          
+          <div class="control-group">
+            <span class="control-label">Size:</span>
+            <div class="size-options">
+              <button class="size-btn" data-size="small">Small</button>
+              <button class="size-btn active" data-size="medium">Medium</button>
+              <button class="size-btn" data-size="large">Large</button>
+            </div>
+          </div>
+          
+          <div class="control-group">
+            <span class="control-label">Background:</span>
+            <div class="toggle-wrapper">
+              <input type="checkbox" id="bgToggle" class="toggle">
+              <label for="bgToggle" class="toggle-slider"></label>
+            </div>
+            <span class="toggle-label">White / Black</span>
+          </div>
+          
+          <!-- Removed theme toggle from here -->
+        </div>
+      </div>
+      
+      <div class="panel">
+        <h2 class="panel-title">Output</h2>
+        <div class="output-container">
+          <div class="crt-effect"></div>
+          <pre id="asciiOutput" class="ascii-output">ASCII output will appear here...</pre>
+        </div>
+        
+        <div class="action-buttons">
+          <button id="saveBtn" class="save-btn">
+            <span class="icon">💾</span>
+            Save as PNG
+          </button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Removing the features section entirely -->
+    
+    <div id="loading" class="loading">
+      <div class="spinner"></div>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // DOM Elements
+      const dropArea = document.getElementById('dropArea');
+      const fileInput = document.getElementById('fileInput');
+      const uploadBtn = document.getElementById('uploadBtn');
+      const colorToggle = document.getElementById('colorToggle');
+      const bgToggle = document.getElementById('bgToggle');
+      const sizeBtns = document.querySelectorAll('.size-btn');
+      const asciiOutput = document.getElementById('asciiOutput');
+      const saveBtn = document.getElementById('saveBtn');
+      const loading = document.getElementById('loading');
+      
+      // Variables
+      let currentImage = null;
+      let currentSize = 'medium';
+      let useColor = false;
+      let useWhiteBg = false; // Default to black background
+      
+      // Event Listeners
+      uploadBtn.addEventListener('click', () => fileInput.click());
+      fileInput.addEventListener('change', handleFileSelect);
+      
+      // Drag and drop events
+      dropArea.addEventListener('dragover', handleDragOver);
+      dropArea.addEventListener('dragleave', handleDragLeave);
+      dropArea.addEventListener('drop', handleDrop);
+      
+      // Controls
+      colorToggle.addEventListener('change', () => {
+        useColor = colorToggle.checked;
+        if (currentImage) processImage(currentImage);
+      });
+      
+      // Add background toggle handler
+      bgToggle.addEventListener('change', () => {
+        useWhiteBg = bgToggle.checked; // Toggle is for white background
+        updateBackgroundColor();
+        if (currentImage) processImage(currentImage);
+      });
+      
+      // Set initial background color
+      function updateBackgroundColor() {
+        const outputContainer = document.querySelector('.output-container');
+        if (useWhiteBg) {
+          outputContainer.style.backgroundColor = '#FFFFFF';
+          asciiOutput.style.color = '#000000';
+        } else {
+          outputContainer.style.backgroundColor = '#050505';
+          asciiOutput.style.color = '#FAFAFA';
+        }
+      }
+      
+      // Initialize background to black
+      updateBackgroundColor();
+      
+      // Size buttons event listeners
+      sizeBtns.forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          sizeBtns.forEach(b => b.classList.remove('active'));
+          e.target.classList.add('active');
+          currentSize = e.target.dataset.size;
+          if (currentImage) processImage(currentImage);
+        });
+      });
+      
+      // Save button
+      saveBtn.addEventListener('click', saveAsImage);
+      
+      // Functions
+      function handleDragOver(e) {
+        e.preventDefault();
+        dropArea.classList.add('active');
+      }
+      
+      function handleDragLeave(e) {
+        e.preventDefault();
+        dropArea.classList.remove('active');
+      }
+      
+      function handleDrop(e) {
+        e.preventDefault();
+        dropArea.classList.remove('active');
+        
+        if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+          const file = e.dataTransfer.files[0];
+          handleFile(file);
+        }
+      }
+      
+      function handleFileSelect(e) {
+        if (e.target.files && e.target.files[0]) {
+          const file = e.target.files[0];
+          handleFile(file);
+        }
+      }
+      
+      function handleFile(file) {
+        // Check if file is an image
+        if (!file.type.match('image.*')) {
+          alert('Please select an image file (JPG, PNG, GIF).');
+          return;
+        }
+        
+        loading.classList.add('active');
+        
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const img = new Image();
+          img.onload = () => {
+            currentImage = img;
+            processImage(img);
+            loading.classList.remove('active');
+          };
+          img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+      }
+      
+      function processImage(img) {
+        // Set dimensions based on size
+        let width;
+        switch (currentSize) {
+          case 'small':
+            width = 60;
+            break;
+          case 'large':
+            width = 120;
+            break;
+          default: // medium
+            width = 80;
+        }
+        
+        // Calculate height to maintain aspect ratio
+        const ratio = img.height / img.width;
+        const height = Math.floor(width * ratio); // Removed division by 2 for better proportions
+        
+        // Create canvas to process image
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+        
+        // Get image data
+        const imageData = ctx.getImageData(0, 0, width, height);
+        const data = imageData.data;
+        
+        // Convert to ASCII
+        let asciiArt = '';
+        const asciiChars = ['@', '%', '#', '*', '+', '=', '-', ':', '.', ' ']; // Reversed for better contrast
+        
+        if (useColor) {
+          // Color version
+          for (let y = 0; y < height; y++) {
+            for (let x = 0; x < width; x++) {
+              const idx = (y * width + x) * 4;
+              const r = data[idx];
+              const g = data[idx + 1];
+              const b = data[idx + 2];
+              
+              // Calculate brightness
+              const brightness = 0.299 * r + 0.587 * g + 0.114 * b;
+              const charIndex = Math.floor(brightness / 255 * (asciiChars.length - 1));
+              const char = asciiChars[charIndex];
+              
+              // Add colored span with consistent width
+              asciiArt += `<span style="color: rgb(${r},${g},${b}); display: inline-block; width: 0.6em;">${char}</span>`;
+            }
+            asciiArt += '<br>';
+          }
+          asciiOutput.innerHTML = asciiArt;
+          asciiOutput.style.lineHeight = '1em';
+          asciiOutput.style.letterSpacing = '0';
+        } else {
+          // Monochrome version
+          for (let y = 0; y < height; y++) {
+            for (let x = 0; x < width; x++) {
+              const idx = (y * width + x) * 4;
+              const r = data[idx];
+              const g = data[idx + 1];
+              const b = data[idx + 2];
+              
+              // Calculate brightness
+              const brightness = 0.299 * r + 0.587 * g + 0.114 * b;
+              const charIndex = Math.floor(brightness / 255 * (asciiChars.length - 1));
+              asciiArt += asciiChars[charIndex];
+            }
+            asciiArt += '\n';
+          }
+          asciiOutput.textContent = asciiArt;
+          asciiOutput.style.lineHeight = '1em';
+          asciiOutput.style.letterSpacing = '0';
+        }
+      }
+      
+      function saveAsImage() {
+        if (!currentImage) {
+          alert('Please convert an image first');
+          return;
+        }
+        
+        // Create a new canvas
+        const canvas = document.createElement('canvas');
+        const context = canvas.getContext('2d');
+        
+        // Set dimensions
+        const outputContainer = document.querySelector('.output-container');
+        canvas.width = outputContainer.clientWidth;
+        canvas.height = outputContainer.clientHeight;
+        
+        // Set background based on toggle
+        context.fillStyle = useWhiteBg ? '#FFFFFF' : '#050505';
+        context.fillRect(0, 0, canvas.width, canvas.height);
+        
+        // Add text
+        context.font = window.getComputedStyle(asciiOutput).font;
+        context.fillStyle = useWhiteBg ? '#000000' : '#FAFAFA';
+        
+        // Handle the different output types
+        if (useColor) {
+          // For colored output, need to use html2canvas or similar
+          // This is a simplified version that would work but doesn't preserve colors
+          html2canvas(outputContainer).then(canvas => {
+            const link = document.createElement('a');
+            link.download = 'ascii-art.png';
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+          });
+        } else {
+          // For monochrome, we can draw text directly
+          const lines = asciiOutput.textContent.split('\n');
+          const lineHeight = parseInt(window.getComputedStyle(asciiOutput).lineHeight);
+          
+          lines.forEach((line, i) => {
+            context.fillText(line, 10, 10 + (i * lineHeight));
+          });
+          
+          // Create download link
+          const link = document.createElement('a');
+          link.download = 'ascii-art.png';
+          link.href = canvas.toDataURL('image/png');
+          link.click();
+        }
+      }
+      
+      // Simple implementation of html2canvas-like functionality for this demo
+      function html2canvas(element) {
+        return new Promise((resolve) => {
+          const canvas = document.createElement('canvas');
+          canvas.width = element.offsetWidth;
+          canvas.height = element.offsetHeight;
+          const ctx = canvas.getContext('2d');
+          
+          // Draw background
+          ctx.fillStyle = '#050505';
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          
+          // Draw content as an image using foreignObject in SVG
+          const data = `<svg xmlns="http://www.w3.org/2000/svg" width="${canvas.width}" height="${canvas.height}">
+            <foreignObject width="100%" height="100%">
+              <div xmlns="http://www.w3.org/1999/xhtml">
+                ${element.innerHTML}
+              </div>
+            </foreignObject>
+          </svg>`;
+          
+          const img = new Image();
+          img.onload = () => {
+            ctx.drawImage(img, 0, 0);
+            resolve(canvas);
+          };
+          img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(data);
+        });
+      }
+      
+      function setupMatrixEffect() {
+        const ctx = matrixCanvas.getContext('2d');
+        matrixCanvas.width = dropArea.offsetWidth;
+        matrixCanvas.height = dropArea.offsetHeight;
+        
+        const characters = 'アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン0123456789';
+        const columns = matrixCanvas.width / 15;
+        const drops = [];
+        
+        for (let i = 0; i < columns; i++) {
+          drops[i] = Math.floor(Math.random() * matrixCanvas.height / 15);
+        }
+        
+        function draw() {
+          ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
+          ctx.fillRect(0, 0, matrixCanvas.width, matrixCanvas.height);
+          
+          ctx.fillStyle = '#0f0';
+          ctx.font = '15px monospace';
+          
+          for (let i = 0; i < drops.length; i++) {
+            const text = characters[Math.floor(Math.random() * characters.length)];
+            ctx.fillText(text, i * 15, drops[i] * 15);
+            
+            if (drops[i] * 15 > matrixCanvas.height && Math.random() > 0.975) {
+              drops[i] = 0;
+            }
+            
+            drops[i]++;
+          }
+        }
+        
+        setInterval(draw, 33);
+      }
+      
+      // Handle window resize
+      window.addEventListener('resize', () => {
+        matrixCanvas.width = dropArea.offsetWidth;
+        matrixCanvas.height = dropArea.offsetHeight;
+      });
+    });
+  </script>
+</body>
+</html>
