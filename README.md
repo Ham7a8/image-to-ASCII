@@ -54,11 +54,3 @@ To run this project locally:
 2. Open `test.html` in your browser
 3. No build steps or dependencies required!
 
-## License
-
-MIT License - Feel free to use, modify, and distribute this code.
-
-## Credits
-
-- Fonts: Google Fonts (Poppins, Space Mono)
-- Icons: Native emoji icons
