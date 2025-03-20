@@ -38,13 +38,6 @@ The application uses pure HTML, CSS, and JavaScript without any external librari
 4. Rendering the result as HTML with proper styling
 5. Providing high-quality PNG export functionality
 
-## Browser Compatibility
-
-The ASCII Art Converter works in all modern browsers:
-- Chrome (recommended)
-- Firefox
-- Edge
-- Safari
 
 ## Local Development
 
