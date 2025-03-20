@@ -2,7 +2,7 @@
 
 A modern web application that transforms images into ASCII art with various customization options.
 
-![ASCII Art Converter Screenshot](screenshot.png)
+![ASCII Art Converter Screenshot](Screenshot.png)
 
 ## Features
 
