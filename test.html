@@ -482,7 +482,7 @@
     <header>
       <!-- Removed theme toggle icon -->
       <h1>ASCII Art Converter</h1>
-      <p class="subtitle">Transform your images into beautiful ASCII art</p>
+      <p class="subtitle">Transform your images into ASCII art</p>
     </header>
     
     <div class="panels">
@@ -569,8 +569,26 @@
       // Variables
       let currentImage = null;
       let currentSize = 'medium';
-      let useColor = false;
-      let useWhiteBg = false; // Default to black background
+      let useColor = true;
+      let useWhiteBg = false;
+      
+      // Cache for processed images
+      const imageCache = new Map();
+      
+      // Pre-calculate brightness multipliers
+      const BRIGHTNESS_MULTIPLIERS = {
+        r: 0.299,
+        g: 0.587,
+        b: 0.114
+      };
+      
+      // Pre-define ASCII chars and their lookup table
+      const ASCII_CHARS = ['@', '%', '#', '*', '+', '=', '-', ':', '.', ' '];
+      const CHAR_LENGTH = ASCII_CHARS.length - 1;
+      
+      // Reusable canvas and context
+      const processCanvas = document.createElement('canvas');
+      const processCtx = processCanvas.getContext('2d');
       
       // Event Listeners
       uploadBtn.addEventListener('click', () => fileInput.click());
@@ -673,79 +691,89 @@
       }
       
       function processImage(img) {
+        // Generate cache key
+        const cacheKey = `${img.src}-${currentSize}-${useColor}-${useWhiteBg}`;
+        
+        // Check cache first
+        if (imageCache.has(cacheKey)) {
+          asciiOutput.innerHTML = imageCache.get(cacheKey);
+          return;
+        }
+        
         // Set dimensions based on size
         let width;
         switch (currentSize) {
-          case 'small':
-            width = 60;
-            break;
-          case 'large':
-            width = 120;
-            break;
-          default: // medium
-            width = 80;
+          case 'small': width = 60; break;
+          case 'large': width = 120; break;
+          default: width = 80; // medium
         }
         
-        // Calculate height to maintain aspect ratio
         const ratio = img.height / img.width;
-        const height = Math.floor(width * ratio); // Removed division by 2 for better proportions
+        const height = Math.floor(width * ratio);
         
-        // Create canvas to process image
-        const canvas = document.createElement('canvas');
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(img, 0, 0, width, height);
+        // Reuse canvas
+        processCanvas.width = width;
+        processCanvas.height = height;
+        processCtx.drawImage(img, 0, 0, width, height);
         
-        // Get image data
-        const imageData = ctx.getImageData(0, 0, width, height);
-        const data = imageData.data;
-        
-        // Convert to ASCII
+        const imageData = processCtx.getImageData(0, 0, width, height).data;
         let asciiArt = '';
-        const asciiChars = ['@', '%', '#', '*', '+', '=', '-', ':', '.', ' ']; // Reversed for better contrast
         
         if (useColor) {
-          // Color version
+          // Optimize color version
+          const rows = new Array(height);
           for (let y = 0; y < height; y++) {
+            const row = new Array(width);
+            const rowOffset = y * width * 4;
+            
             for (let x = 0; x < width; x++) {
-              const idx = (y * width + x) * 4;
-              const r = data[idx];
-              const g = data[idx + 1];
-              const b = data[idx + 2];
+              const idx = rowOffset + x * 4;
+              const r = imageData[idx];
+              const g = imageData[idx + 1];
+              const b = imageData[idx + 2];
               
-              // Calculate brightness
-              const brightness = 0.299 * r + 0.587 * g + 0.114 * b;
-              const charIndex = Math.floor(brightness / 255 * (asciiChars.length - 1));
-              const char = asciiChars[charIndex];
+              const brightness = (r * BRIGHTNESS_MULTIPLIERS.r + 
+                                g * BRIGHTNESS_MULTIPLIERS.g + 
+                                b * BRIGHTNESS_MULTIPLIERS.b);
+              const charIndex = Math.floor(brightness / 255 * CHAR_LENGTH);
               
-              // Add colored span with consistent width
-              asciiArt += `<span style="color: rgb(${r},${g},${b}); display: inline-block; width: 0.6em;">${char}</span>`;
+              row[x] = `<span style="color: rgb(${r},${g},${b}); display: inline-block; width: 0.6em;">${ASCII_CHARS[charIndex]}</span>`;
             }
-            asciiArt += '<br>';
+            rows[y] = row.join('');
           }
-          asciiOutput.innerHTML = asciiArt;
-          asciiOutput.style.lineHeight = '1em';
-          asciiOutput.style.letterSpacing = '0';
+          asciiArt = rows.join('<br>');
         } else {
-          // Monochrome version
+          // Optimize monochrome version
+          const rows = new Array(height);
           for (let y = 0; y < height; y++) {
+            const row = new Array(width);
+            const rowOffset = y * width * 4;
+            
             for (let x = 0; x < width; x++) {
-              const idx = (y * width + x) * 4;
-              const r = data[idx];
-              const g = data[idx + 1];
-              const b = data[idx + 2];
-              
-              // Calculate brightness
-              const brightness = 0.299 * r + 0.587 * g + 0.114 * b;
-              const charIndex = Math.floor(brightness / 255 * (asciiChars.length - 1));
-              asciiArt += asciiChars[charIndex];
+              const idx = rowOffset + x * 4;
+              const brightness = (imageData[idx] * BRIGHTNESS_MULTIPLIERS.r + 
+                                imageData[idx + 1] * BRIGHTNESS_MULTIPLIERS.g + 
+                                imageData[idx + 2] * BRIGHTNESS_MULTIPLIERS.b);
+              const charIndex = Math.floor(brightness / 255 * CHAR_LENGTH);
+              row[x] = `<span style="display: inline-block; width: 0.6em;">${ASCII_CHARS[charIndex]}</span>`;
             }
-            asciiArt += '\n';
+            rows[y] = row.join('');
           }
-          asciiOutput.textContent = asciiArt;
-          asciiOutput.style.lineHeight = '1em';
-          asciiOutput.style.letterSpacing = '0';
+          asciiArt = rows.join('<br>');
+        }
+        
+        // Cache the result
+        imageCache.set(cacheKey, asciiArt);
+        
+        // Update output
+        asciiOutput.innerHTML = asciiArt;
+        asciiOutput.style.lineHeight = '1em';
+        asciiOutput.style.letterSpacing = '0';
+        
+        // Limit cache size
+        if (imageCache.size > 10) {
+          const firstKey = imageCache.keys().next().value;
+          imageCache.delete(firstKey);
         }
       }
       
@@ -755,77 +783,138 @@
           return;
         }
         
-        // Create a new canvas
+        loading.classList.add('active');
+        
+        // Create a canvas for rendering with higher resolution
         const canvas = document.createElement('canvas');
-        const context = canvas.getContext('2d');
-        
-        // Set dimensions
         const outputContainer = document.querySelector('.output-container');
-        canvas.width = outputContainer.clientWidth;
-        canvas.height = outputContainer.clientHeight;
+        const asciiContent = document.getElementById('asciiOutput');
         
-        // Set background based on toggle
-        context.fillStyle = useWhiteBg ? '#FFFFFF' : '#050505';
-        context.fillRect(0, 0, canvas.width, canvas.height);
+        // Increase resolution with a scale factor for better quality
+        const scaleFactor = 2;
+        canvas.width = asciiContent.scrollWidth * scaleFactor;
+        canvas.height = asciiContent.scrollHeight * scaleFactor;
         
-        // Add text
-        context.font = window.getComputedStyle(asciiOutput).font;
-        context.fillStyle = useWhiteBg ? '#000000' : '#FAFAFA';
+        const ctx = canvas.getContext('2d');
+        // Enable text anti-aliasing
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
         
-        // Handle the different output types
-        if (useColor) {
-          // For colored output, need to use html2canvas or similar
-          // This is a simplified version that would work but doesn't preserve colors
-          html2canvas(outputContainer).then(canvas => {
-            const link = document.createElement('a');
-            link.download = 'ascii-art.png';
-            link.href = canvas.toDataURL('image/png');
-            link.click();
+        // Scale everything up for higher resolution
+        ctx.scale(scaleFactor, scaleFactor);
+        
+        // Fill background
+        ctx.fillStyle = useWhiteBg ? '#FFFFFF' : '#050505';
+        ctx.fillRect(0, 0, canvas.width / scaleFactor, canvas.height / scaleFactor);
+        
+        // Render ASCII content with improved font settings
+        ctx.font = '10px "Space Mono", monospace';
+        ctx.textBaseline = 'top';
+        ctx.textRendering = 'geometricPrecision';
+        
+        // For monochrome output
+        if (!useColor) {
+          ctx.fillStyle = useWhiteBg ? '#000000' : '#FAFAFA';
+          
+          // Get the raw ASCII text (without HTML)
+          const tempDiv = document.createElement('div');
+          tempDiv.innerHTML = asciiOutput.innerHTML;
+          const text = tempDiv.textContent;
+          const lines = text.split('\n');
+          
+          // Draw each line with proper spacing
+          lines.forEach((line, i) => {
+            ctx.fillText(line, 15, 15 + (i * 10));
           });
         } else {
-          // For monochrome, we can draw text directly
-          const lines = asciiOutput.textContent.split('\n');
-          const lineHeight = parseInt(window.getComputedStyle(asciiOutput).lineHeight);
+          // For colored output with improved rendering
+          const rows = asciiOutput.innerHTML.split('<br>');
+          let y = 15;
           
-          lines.forEach((line, i) => {
-            context.fillText(line, 10, 10 + (i * lineHeight));
+          rows.forEach(row => {
+            const tempRow = document.createElement('div');
+            tempRow.innerHTML = row;
+            const spans = tempRow.querySelectorAll('span');
+            let x = 15;
+            
+            spans.forEach(span => {
+              // Extract color from style
+              const colorMatch = span.style.color ? span.style.color.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/) : null;
+              if (colorMatch) {
+                ctx.fillStyle = span.style.color;
+                const char = span.textContent;
+                ctx.fillText(char, x, y);
+              }
+              x += 6; // Approximate width of monospace character
+            });
+            
+            y += 10; // Line height
           });
-          
-          // Create download link
+        }
+        
+        // Create download link with higher quality PNG
+        try {
           const link = document.createElement('a');
           link.download = 'ascii-art.png';
-          link.href = canvas.toDataURL('image/png');
+          // Use higher quality settings for the PNG
+          link.href = canvas.toDataURL('image/png', 1.0);
+          document.body.appendChild(link);
           link.click();
+          document.body.removeChild(link);
+          loading.classList.remove('active');
+        } catch (err) {
+          console.error('Error saving image:', err);
+          alert('Failed to save image: ' + err.message);
+          loading.classList.remove('active');
         }
       }
       
-      // Simple implementation of html2canvas-like functionality for this demo
+      // Remove the problematic html2canvas function
+      // function html2canvas(element) { ... }
+      
       function html2canvas(element) {
-        return new Promise((resolve) => {
-          const canvas = document.createElement('canvas');
-          canvas.width = element.offsetWidth;
-          canvas.height = element.offsetHeight;
-          const ctx = canvas.getContext('2d');
-          
-          // Draw background
-          ctx.fillStyle = '#050505';
-          ctx.fillRect(0, 0, canvas.width, canvas.height);
-          
-          // Draw content as an image using foreignObject in SVG
-          const data = `<svg xmlns="http://www.w3.org/2000/svg" width="${canvas.width}" height="${canvas.height}">
-            <foreignObject width="100%" height="100%">
-              <div xmlns="http://www.w3.org/1999/xhtml">
-                ${element.innerHTML}
-              </div>
-            </foreignObject>
-          </svg>`;
-          
-          const img = new Image();
-          img.onload = () => {
-            ctx.drawImage(img, 0, 0);
-            resolve(canvas);
-          };
-          img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(data);
+        return new Promise((resolve, reject) => {
+          try {
+            const canvas = document.createElement('canvas');
+            const width = element.offsetWidth;
+            const height = element.offsetHeight;
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            
+            // Draw background
+            ctx.fillStyle = element.style.backgroundColor || '#050505';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Create a data URL representing the HTML content
+            const data = `
+              <svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">
+                <foreignObject width="100%" height="100%" x="0" y="0">
+                  <div xmlns="http://www.w3.org/1999/xhtml" style="width:${width}px;height:${height}px;">
+                    ${element.outerHTML}
+                  </div>
+                </foreignObject>
+              </svg>
+            `;
+            
+            const img = new Image();
+            img.crossOrigin = 'Anonymous';
+            
+            img.onload = () => {
+              ctx.drawImage(img, 0, 0);
+              resolve(canvas);
+            };
+            
+            img.onerror = (e) => {
+              reject(new Error('Image loading failed'));
+            };
+            
+            const svgBlob = new Blob([data], { type: 'image/svg+xml;charset=utf-8' });
+            const url = URL.createObjectURL(svgBlob);
+            img.src = url;
+          } catch (err) {
+            reject(err);
+          }
         });
       }
       
